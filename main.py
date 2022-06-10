@@ -2,6 +2,7 @@ import numpy as np
 from mpi4py import MPI
 import pygame
 from settings import *
+import sys
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
@@ -56,11 +57,15 @@ sub_grid = np.reshape(rand_grid, (n_of_sub_rows + 2, NUMBER_OF_COLUMNS))
 sub_grid[:, 0] = 0
 sub_grid[:, -1] = 0
 
+
+
 if rank == 0:
     sub_grid[0, :] = 1
+    clock = pygame.time.Clock()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 oldGrid = comm.gather(sub_grid[1:n_of_sub_rows - 1, :], root=0)
-for i in range(1,100):
+for i in range(1,500):
     sub_grid = compute_new_grid(sub_grid)
     if rank == 0:
         exchange_boundaries_up(sub_grid)
@@ -71,8 +76,10 @@ for i in range(1,100):
         exchange_boundaries_down(sub_grid)
     newGrid = comm.gather(sub_grid[1:n_of_sub_rows - 1, :], root=0)
     if rank == 0:
-        clock = pygame.time.Clock()
-        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
         result= np.vstack(newGrid)
         screen.fill(BACKGROUND_COLOR)
         draw(screen, result)
