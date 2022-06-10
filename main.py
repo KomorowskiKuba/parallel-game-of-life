@@ -1,3 +1,7 @@
+import os
+
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
+
 import sys
 import time
 import pygame
@@ -6,7 +10,6 @@ import numpy as np
 from mpi4py import MPI
 
 from settings import *
-
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
@@ -18,13 +21,13 @@ amount_of_sub_rows = NUMBER_OF_ROWS // size + 2
 
 
 def exchange_boundaries_up(_sub_grid):
-    comm.send(_sub_grid[amount_of_sub_rows-2, :], dest=rank+1)
-    _sub_grid[amount_of_sub_rows-1, :] = comm.recv(source=rank+1)
+    comm.send(_sub_grid[amount_of_sub_rows - 2, :], dest=rank + 1)
+    _sub_grid[amount_of_sub_rows - 1, :] = comm.recv(source=rank + 1)
 
 
 def exchange_boundaries_down(_sub_grid):
-    comm.send(_sub_grid[1, :], dest=rank-1)
-    _sub_grid[0, :] = comm.recv(source=rank-1)
+    comm.send(_sub_grid[1, :], dest=rank - 1)
+    _sub_grid[0, :] = comm.recv(source=rank - 1)
 
 
 def compute_new_grid(_sub_grid):
@@ -74,7 +77,7 @@ if rank == 0:
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-oldGrid = comm.gather(sub_grid[1: amount_of_sub_rows-1, :], root=0)
+oldGrid = comm.gather(sub_grid[1: amount_of_sub_rows - 1, :], root=0)
 
 for i in range(1, AMOUNT_OF_ITERATIONS):
     sub_grid = compute_new_grid(sub_grid)
@@ -94,6 +97,8 @@ for i in range(1, AMOUNT_OF_ITERATIONS):
             if event.type == pygame.QUIT:
                 end = time.time()
                 print('Time:', end - start)
+
+                sys.stdout.flush()
                 MPI.COMM_WORLD.Abort()
                 pygame.quit()
                 sys.exit()
@@ -103,5 +108,6 @@ for i in range(1, AMOUNT_OF_ITERATIONS):
         draw(screen, result)
         clock.tick(FPS)
 
-end = time.time()
-print('Time:', end - start)
+if rank == 0:
+    end = time.time()
+    print('Time:', end - start)
